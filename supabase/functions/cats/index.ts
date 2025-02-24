@@ -65,7 +65,8 @@ serve(async (req: Request) => {
   }
 });
 
-//curl req - POST:
+
+// Testing curl requests
 
 // curl -L -X POST 'https://nvfptdwvvezwnylxbykg.supabase.co/functions/v1/cats' 
 // -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52ZnB0ZHd2dmV6d255bHhieWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTI3MjMsImV4cCI6MjA1NTYyODcyM30.xToPqEl08Mq1C2X1tkBRmYMMRRjop0RdKJ_and86KWo' 
