@@ -25,12 +25,22 @@ serve(async (req: Request) => {
     // Handle POST request - add cat
     if (req.method === "POST") {
       const { breed, age } = await req.json();
-      const { error } = await supabase.from("cats").insert([{ breed, age }]);
+      const { error } = await supabase
+        .from("cats")
+        .insert([{ breed, age }]);
+
+      if (!breed || !age) {
+        return new Response(JSON.stringify({ error: "Cat breed and age input is required for posting" }), { 
+          status: 400, 
+          headers 
+        });
+      }
       
       if (error) throw error;
       return new Response(JSON.stringify({ success: true, message: "Message sent!" }), { headers });
     }
 
+    // Handle PUT request - edit cat
     if (req.method === "PUT") {
       const { id, breed, age } = await req.json();
 
@@ -48,6 +58,25 @@ serve(async (req: Request) => {
 
       if (error) throw error;
       return new Response(JSON.stringify({ success: true, message: "Cat updated successfully!" }), { headers });
+    }
+
+    // Handle DELETE request - delete cat
+    if (req.method === "DELETE") {
+      const { id } = await req.json();
+      const { error } = await supabase
+          .from("cats")
+          .delete()
+          .eq("id", id);
+
+      if (!id) {
+        return new Response(JSON.stringify({ error: "Cat ID is required for delete" }), { 
+          status: 400, 
+          headers 
+        });
+      }
+
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true, message: "Cat deleted successfully"}), { headers });
     }
 
     // Handle unsupported methods
@@ -80,3 +109,10 @@ serve(async (req: Request) => {
 //     "breed": "Persian",
 //     "age": 3
 //   }'
+
+// curl -L -X DELETE 'https://nvfptdwvvezwnylxbykg.supabase.co/functions/v1/cats' 
+//   -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52ZnB0ZHd2dmV6d255bHhieWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTI3MjMsImV4cCI6MjA1NTYyODcyM30.xToPqEl08Mq1C2X1tkBRmYMMRRjop0RdKJ_and86KWo' 
+//   -H 'Content-Type: application/json'
+//   --data '{
+//     "id": 2
+//   }' 
