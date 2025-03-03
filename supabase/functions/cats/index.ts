@@ -24,13 +24,13 @@ serve(async (req: Request) => {
 
     // Handle POST request - add cat
     if (req.method === "POST") {
-      const { breed, age } = await req.json();
+      const { breed, temperament, description, hypoallergenic, image_url } = await req.json();
       const { error } = await supabase
         .from("cats")
-        .insert([{ breed, age }]);
+        .insert([{ breed, temperament, description, hypoallergenic, image_url }]);
 
-      if (!breed || !age) {
-        return new Response(JSON.stringify({ error: "Cat breed and age input is required for posting" }), { 
+      if (!breed || !temperament || !description || !hypoallergenic || !image_url) {
+        return new Response(JSON.stringify({ error: "All inputs are required for posting" }), { 
           status: 400, 
           headers 
         });
@@ -42,7 +42,7 @@ serve(async (req: Request) => {
 
     // Handle PUT request - edit cat
     if (req.method === "PUT") {
-      const { id, breed, age } = await req.json();
+      const { id, breed, temperament, description, hypoallergenic, image_url  } = await req.json();
 
       if (!id) {
         return new Response(JSON.stringify({ error: "Cat ID is required for update" }), { 
@@ -53,7 +53,7 @@ serve(async (req: Request) => {
 
       const { error } = await supabase
         .from("cats")
-        .update({ breed, age })
+        .update({ breed, temperament, description, hypoallergenic, image_url })
         .eq("id", id);
 
       if (error) throw error;
@@ -99,15 +99,18 @@ serve(async (req: Request) => {
 
 // curl -L -X POST 'https://nvfptdwvvezwnylxbykg.supabase.co/functions/v1/cats' 
 // -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52ZnB0ZHd2dmV6d255bHhieWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTI3MjMsImV4cCI6MjA1NTYyODcyM30.xToPqEl08Mq1C2X1tkBRmYMMRRjop0RdKJ_and86KWo' 
-// --data '{"breed": "siamese", "age": 1}'
+// --data '{"breed": "siamese", 
+// "temperament": "Active, Agile, Clever, Sociable, Loving, Energetic", 
+// "description": "While Siamese cats are extremely fond of their people, they will follow you around and supervise your every move, being talkative and opinionated. They are a demanding and social cat, that do not like being left alone for long periods.",
+// "hypoallergenic": "true",
+// "image_url": "https://www.litter-robot.com/blog/siamese-cat/"}'
 
 // curl -L -X PUT 'https://nvfptdwvvezwnylxbykg.supabase.co/functions/v1/cats' 
 //   -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im52ZnB0ZHd2dmV6d255bHhieWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTI3MjMsImV4cCI6MjA1NTYyODcyM30.xToPqEl08Mq1C2X1tkBRmYMMRRjop0RdKJ_and86KWo' 
 //   -H 'Content-Type: application/json'
 //   --data '{
-//     "id": 1,
-//     "breed": "Persian",
-//     "age": 3
+//     "id": 16,
+//     "breed" : "Siamese"
 //   }'
 
 // curl -L -X DELETE 'https://nvfptdwvvezwnylxbykg.supabase.co/functions/v1/cats' 
