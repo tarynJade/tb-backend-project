@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.181.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateCatData, handleError, checkCatExists } from "./util-functions.ts";
 
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -17,7 +18,8 @@ serve(async (req: Request) => {
         .select("*")
         .order("breed", { ascending: true });
 
-      if (error) throw error;
+      if (error) return handleError("Error fetching cats:", 500);
+
       return new Response(JSON.stringify(data), { status: 200, headers });
     }
 
@@ -26,20 +28,19 @@ serve(async (req: Request) => {
       const { breed, temperament, description, hypoallergenic, image_url } =
         await req.json();
 
-      if (
-        !breed ||
-        !temperament ||
-        !description ||
-        !hypoallergenic ||
-        !image_url
-      ) {
-        return new Response(
-          JSON.stringify({ error: "All inputs are required for posting" }),
-          {
-            status: 400,
-            headers,
-          }
-        );
+      const validationErrors = validateCatData({
+        breed,
+        temperament,
+        description,
+        hypoallergenic,
+        image_url,
+      });
+
+      if (validationErrors.length > 0) {
+        return new Response(JSON.stringify({ validationErrors }), {
+          status: 400,
+          headers,
+        });
       }
 
       const { error } = await supabase
@@ -48,11 +49,11 @@ serve(async (req: Request) => {
           { breed, temperament, description, hypoallergenic, image_url },
         ]);
 
-      if (error) throw error;
+      if (error) return handleError("Error inserting cat into database: ", 500);
 
       return new Response(
         JSON.stringify({ success: true, message: "Message sent!" }),
-        { status: 200, headers }
+        { status: 201, headers }
       );
     }
 
@@ -61,22 +62,40 @@ serve(async (req: Request) => {
       const { id, breed, temperament, description, hypoallergenic, image_url } =
         await req.json();
 
-      if (!breed) {
+      const validationErrors = validateCatData(
+        {
+          id,
+          breed,
+          temperament,
+          description,
+          hypoallergenic,
+          image_url,
+        },
+        true
+      );
+
+      if (validationErrors.length > 0) {
+        return new Response(JSON.stringify({ validationErrors }), {
+          status: 400,
+          headers,
+        });
+      }
+
+      const catExists = await checkCatExists(supabase, id);
+      if (!catExists) {
         return new Response(
-          JSON.stringify({ error: "Cat breed is required for update" }),
-          {
-            status: 400,
-            headers,
-          }
+          JSON.stringify({ error: `No cat found with id: ${id}` }),
+          { status: 404, headers }
         );
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("cats")
         .update({ breed, temperament, description, hypoallergenic, image_url })
-        .eq("breed", breed);
+        .eq("id", id);
 
-      if (error) throw error;
+      if (error) return handleError("Error updating Cat: ", 500);
+
       return new Response(
         JSON.stringify({ success: true, message: "Cat updated successfully!" }),
         { status: 200, headers }
@@ -85,34 +104,29 @@ serve(async (req: Request) => {
 
     // Handle DELETE request - delete cat
     if (req.method === "DELETE") {
-      const { breed } = await req.json();
+      const { id } = await req.json();
 
-      if (!breed || typeof breed !== "string" || breed.trim() === "") {
+      const validationErrors = validateCatData({ id }, true);
+      if (validationErrors.length > 0) {
+        return new Response(JSON.stringify({ validationErrors }), {
+          status: 400,
+          headers,
+        });
+      }
+
+      const catExists = await checkCatExists(supabase, id);
+      
+      if (!catExists) {
         return new Response(
-          JSON.stringify({ error: "Valid cat breed is required for delete" }),
-          {
-            status: 400,
-            headers,
-          }
+          JSON.stringify({ error: `No cat found with id: ${id}` }),
+          { status: 404, headers }
         );
       }
 
-      const { data: catExists } = await supabase
-        .from("cats")
-        .select("id")
-        .eq("breed", breed);
+      const { error } = await supabase.from("cats").delete().eq("id", id);
 
-      if (!catExists || catExists.length === 0) {
-        return new Response(
-          JSON.stringify({ error: `No cat found with breed: ${breed}` })
-        );
-      }
+      if (error) return handleError("Error deleting cat: ", 500);
 
-      const { error } = await supabase.from("cats").delete().eq("breed", breed);
-
-      if (error) {
-        return new Response(JSON.stringify({ error: "Error deleting cat." }));
-      }
       return new Response(
         JSON.stringify({ success: true, message: "Cat deleted successfully" }),
         { status: 200, headers }
@@ -125,16 +139,12 @@ serve(async (req: Request) => {
       headers,
     });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers,
-    });
+    return new Response(
+      JSON.stringify({ error: error.message || "Unknown error" }),
+      {
+        status: 500,
+        headers,
+      }
+    );
   }
 });
-
-// mock unit test response
-// endpoint calls
-// invalid
-// happy paths
