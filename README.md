@@ -22,7 +22,8 @@ operations on a collection of cats stored in a Supabase database for the front-e
 
 - To run tests locally first  `` npm install `` 
 - navigate to supabase  `` cd supabase ``
-- Run `` npx deno test --no-check `` 
+- Run `` npx deno test --no-check ``
+- CURL tests and POSTMAN have been used throughout the project to ensure correct information was being received and sent 
 
 ## Server and API Integration
 
